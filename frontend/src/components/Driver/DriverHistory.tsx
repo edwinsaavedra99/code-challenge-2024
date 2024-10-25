@@ -25,12 +25,14 @@ import {
 // Interface for Ride data
 interface Ride {
   id: number;
+  user_id: number;
   status: string;
   pickup_location: string;
   destination_location: string;
   scheduled_time: string;
   offer?: {
     price: number;
+    driver_id: number;
   };
   review?: {
     rating: number;
@@ -59,7 +61,16 @@ const DriverHistory: React.FC = () => {
       const response = await axios.get("http://localhost:3001/api/v1/ride", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
-      return response.data;
+
+      // Get the current user's ID from the token
+      const currentUserId = getUserIdFromToken(
+        localStorage.getItem("token")
+      );
+
+      // Filter rides for the current user
+      return response.data.filter(
+        (ride: Ride) => ride.offer?.driver_id === currentUserId
+      );
     },
   });
 
@@ -67,6 +78,19 @@ const DriverHistory: React.FC = () => {
   const completedRides = rides?.filter(
     (ride) => ride.status.toUpperCase() === "COMPLETED"
   );
+
+  // Helper function to extract user ID from token
+  function getUserIdFromToken(token: string | null): number | null {
+    if (!token) return null;
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.id;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return null;
+    }
+  }
 
   return (
     <Box maxWidth="800px" margin="auto" mt={4} p={4}>
